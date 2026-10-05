@@ -112,6 +112,18 @@ const Store = (() => {
       {id:"ev5", auteur:"adm", classe:"*", type:"evenement", titre:"Journée d'accueil des nouveaux étudiants", details:"Présentation du campus, des établissements et de l'espace numérique.", date:weekday(12), lieu:"Cap Estérias"},
     ].filter(e => e.classe === "*" || d.classes.some(c => c.id === e.classe));
   }
+  // Lecture d'un fichier joint (démo) : les images sont réduites pour tenir dans le navigateur
+  const readPiece = f => new Promise((res, rej) => {
+    const r = new FileReader(); r.onerror = () => rej(new Error("Lecture du fichier impossible"));
+    r.onload = () => {
+      const meta = {nom:f.name, type:f.type, taille:f.size};
+      if (!f.type.startsWith("image/")) return res({...meta, data:r.result});
+      const im = new Image(); im.onerror = () => res({...meta, data:r.result});
+      im.onload = () => { const k = Math.min(1, 1400 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); res({...meta, type:"image/jpeg", data:c.toDataURL("image/jpeg", .8)}); };
+      im.src = r.result;
+    };
+    r.readAsDataURL(f);
+  });
   const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   // Conflits d'un cours avec l'emploi du temps existant (même classe, même enseignant ou même salle)
   function conflits(s, seances, matieres) {
@@ -145,8 +157,11 @@ const Store = (() => {
     async deletePost(id) { db.posts = db.posts.filter(p => p.id !== id); this.save(); },
     async send(to, texte) { const m = {id:uid("x"), from:me.id, to, texte, date:new Date().toISOString(), lu:false}; db.messages.push(m); this.save(); return m; },
     async markRead(other) { db.messages.forEach(m => { if (m.to === me.id && m.from === other) m.lu = true; }); this.save(); },
-    async addCandidature(d) { this.load(); const ref = "UIBCON-26-" + String(413 + db.candidatures.length).padStart(4, "0"); db.candidatures.unshift({...d, id:uid("c"), ref, date:new Date().toISOString(), statut:"nouveau"}); this.save(); return ref; },
+    async addCandidature(d, files = []) { this.load(); d = {...d, pieces:await Promise.all(files.map(readPiece))}; const ref = "UIBCON-26-" + String(413 + db.candidatures.length).padStart(4, "0"); db.candidatures.unshift({...d, id:uid("c"), ref, date:new Date().toISOString(), statut:"nouveau"});
+      try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { db.candidatures.shift(); throw new Error("Fichiers trop volumineux pour la version de démonstration : essayez avec des fichiers plus petits."); }
+      return ref; },
     async setStatut(id, statut) { const c = db.candidatures.find(x => x.id === id); if (c) c.statut = statut; this.save(); },
+    async pieceUrl(p) { return p.data; },
     async addContact(d) { this.load(); db.contacts.unshift({...d, id:uid("k"), date:new Date().toISOString()}); this.save(); },
     async deleteContact(id) { db.contacts = db.contacts.filter(c => c.id !== id); this.save(); },
     async changePassword(pwd) { me.pwd = pwd; this.save(); },
@@ -250,7 +265,21 @@ const Store = (() => {
       if (!ids.length) return; db.messages.forEach(m => { if (ids.includes(m.id)) m.lu = true; });
       await q(sb.from("messages").update({lu:true}).in("id", ids));
     },
-    async addCandidature(d) { await ready(); return await q(sb.rpc("submit_candidature", {d})); },
+    async addCandidature(d, files = []) {
+      await ready(); const ref = await q(sb.rpc("submit_candidature", {d}));
+      if (files.length) {
+        const pieces = [];
+        for (const [i, f] of files.entries()) {
+          const path = `${ref}/${i + 1}-${f.name.normalize("NFD").replace(/[^\w.\-]+/g, "_")}`;
+          const {error} = await sb.storage.from("pieces").upload(path, f, {contentType:f.type});
+          if (error) throw new Error("Envoi du fichier « " + f.name + " » impossible : " + error.message);
+          pieces.push({nom:f.name, type:f.type, taille:f.size, path});
+        }
+        await q(sb.rpc("attach_pieces", {p_ref:ref, p_pieces:pieces}));
+      }
+      return ref;
+    },
+    async pieceUrl(p) { await ready(); const {data, error} = await sb.storage.from("pieces").createSignedUrl(p.path, 300); if (error) throw new Error(error.message); return data.signedUrl; },
     async setStatut(id, statut) { await q(sb.from("candidatures").update({statut}).eq("id", id)); const c = db.candidatures.find(x => x.id === id); if (c) c.statut = statut; },
     async addContact(d) { await ready(); await q(sb.from("contacts").insert({nom:d.nom, email:d.email, tel:d.tel || null, sujet:d.sujet, message:d.message})); },
     async deleteContact(id) { await q(sb.from("contacts").delete().eq("id", id)); db.contacts = db.contacts.filter(c => c.id !== id); },
@@ -337,8 +366,9 @@ const Store = (() => {
         .sort((a, b) => b.last.date.localeCompare(a.last.date));
     },
     // Scolarité
-    addCandidature: d => A.addCandidature(d),
+    addCandidature: (d, f) => A.addCandidature(d, f),
     setStatut: (id, s) => A.setStatut(id, s),
+    pieceUrl: p => A.pieceUrl(p),
     addContact: d => A.addContact(d),
     deleteContact: id => A.deleteContact(id),
     createUser: u => A.createUser(u),

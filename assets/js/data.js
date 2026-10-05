@@ -109,6 +109,7 @@ const GALERIE = [
   {img:"bloc-f", cat:"campus", t:"Bloc F"},
   {img:"ceremonie-officiels", cat:"ceremonie", t:"Cérémonie d'inauguration du 10 septembre 2026"},
   {img:"salle-de-cours-2", cat:"salles", t:"Salle de cours aux couleurs vives"},
+  {img:"salle-de-cours-3", cat:"salles", t:"Salle de cours lumineuse"},
   {img:"campus-plan-aerien", cat:"campus", t:"Le campus vu du ciel"},
   {img:"infirmerie", cat:"salles", t:"L'infirmerie du campus"},
   {img:"entree-batiments", cat:"campus", t:"Entrées des bâtiments pédagogiques"},

@@ -366,3 +366,33 @@ begin
     (adm,'*',null,'evenement','Journée d''accueil des nouveaux étudiants','Présentation du campus, des établissements et de l''espace numérique.', current_date + 12, null, null, 'Cap Estérias')
   ) v(e_aut, e_cls, e_mat, e_typ, e_tit, e_det, e_dat, e_deb, e_fin, e_lieu);
 end $$;
+
+-- ---------------------------------------------------------------------
+-- 7. Pièces jointes des candidatures (stockage privé « pieces »)
+--    Le candidat dépose ses fichiers (PDF/JPG/PNG, 3 Mo max) ; seule la scolarité peut les lire.
+-- ---------------------------------------------------------------------
+alter table public.candidatures add column if not exists pieces jsonb not null default '[]'::jsonb;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('pieces', 'pieces', false, 3145728, array['application/pdf','image/jpeg','image/png'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists pieces_insert on storage.objects;
+create policy pieces_insert on storage.objects for insert to anon, authenticated
+  with check (bucket_id = 'pieces' and (storage.foldername(name))[1] like 'UIBCON-%');
+drop policy if exists pieces_admin_read on storage.objects;
+create policy pieces_admin_read on storage.objects for select to authenticated
+  using (bucket_id = 'pieces' and public.my_role() = 'admin');
+drop policy if exists pieces_admin_delete on storage.objects;
+create policy pieces_admin_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'pieces' and public.my_role() = 'admin');
+
+-- Rattache les fichiers déposés à la candidature qui vient d'être créée (une seule fois, dans l'heure)
+create or replace function public.attach_pieces(p_ref text, p_pieces jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if jsonb_typeof(p_pieces) <> 'array' or jsonb_array_length(p_pieces) > 5 then raise exception 'Pièces jointes invalides'; end if;
+  update candidatures set pieces = p_pieces
+   where ref = p_ref and pieces = '[]'::jsonb and date > now() - interval '1 hour';
+end $$;
+grant execute on function public.attach_pieces(text, jsonb) to anon, authenticated;

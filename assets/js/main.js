@@ -216,6 +216,23 @@ function initAdmission() {
   const sel = $("[name=formation]", form);
   sel.innerHTML = '<option value="">— Choisir une formation —</option>' + Object.entries(NIVEAUX).map(([k, n]) => `<optgroup label="${n.full}">${FORMATIONS.filter(f => f.niv === k).map(f => `<option value="${f.id}">${f.t}</option>`).join("")}</optgroup>`).join("");
   const pre = new URLSearchParams(location.search).get("f"); if (pre) sel.value = pre;
+  const PJ = {max:5, size:3 * 1024 * 1024, types:["application/pdf", "image/jpeg", "image/png"]};
+  let files = [];
+  const pjList = $("#pj-list"), pjIn = $("#pieces");
+  const ko = n => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " Ko" : (n / 1048576).toFixed(1).replace(".", ",") + " Mo";
+  const drawPj = () => { pjList.innerHTML = files.map((f, i) => `<li><span class="pj-ic">${f.type === "application/pdf" ? "PDF" : "IMG"}</span><span class="pj-n">${f.name.replace(/[<>&"]/g, "")}<small>${ko(f.size)}</small></span><button type="button" class="pj-x" data-rm="${i}" aria-label="Retirer">×</button></li>`).join(""); };
+  if (pjIn) {
+    pjIn.addEventListener("change", () => {
+      for (const f of pjIn.files) {
+        if (files.length >= PJ.max) { toast("5 fichiers maximum.", "err"); break; }
+        if (!PJ.types.includes(f.type)) { toast(f.name + " : format non accepté (PDF, JPG ou PNG).", "err"); continue; }
+        if (f.size > PJ.size) { toast(f.name + " : fichier trop lourd (3 Mo maximum).", "err"); continue; }
+        if (!files.some(x => x.name === f.name && x.size === f.size)) files.push(f);
+      }
+      pjIn.value = ""; drawPj();
+    });
+    pjList.addEventListener("click", e => { const b = e.target.closest("[data-rm]"); if (b) { files.splice(+b.dataset.rm, 1); drawPj(); } });
+  }
   const steps = $$(".fstep", form), bars = $$(".steps span", form); let s = 0;
   const show = k => { s = k; steps.forEach((x, j) => x.classList.toggle("on", j === k)); bars.forEach((b, j) => b.classList.toggle("on", j <= k)); };
   const valid = () => { const bad = $$("[required]", steps[s]).find(i => !i.checkValidity()); if (bad) { bad.reportValidity(); return false; } return true; };
@@ -225,16 +242,16 @@ function initAdmission() {
   });
   form.addEventListener("submit", async e => {
     e.preventDefault(); if (!valid()) return;
-    const d = Object.fromEntries(new FormData(form));
+    const d = Object.fromEntries(new FormData(form)); delete d.pieces;
     d.formationLabel = (FORMATIONS.find(f => f.id === d.formation) || {}).t || "";
     const btn = $("button[type=submit]", form); btn.disabled = true;
     let ref;
-    try { ref = await Store.addCandidature(d); } catch (err) { btn.disabled = false; return toast("Envoi impossible : " + err.message, "err"); }
+    try { ref = await Store.addCandidature(d, files); } catch (err) { btn.disabled = false; return toast("Envoi impossible : " + err.message, "err"); }
     btn.disabled = false;
-    form.reset(); show(0);
+    const nbPj = files.length; form.reset(); files = []; if (pjList) drawPj(); show(0);
     modal("Pré-inscription enregistrée 🎉", `<p class="lead-p">Merci <b>${d.prenom}</b> ! Votre demande pour <b>${d.formationLabel}</b> a bien été transmise au service de la scolarité.</p>
       <div class="panel" style="margin:1.2rem 0;box-shadow:none;text-align:center"><small style="color:var(--muted)">Votre numéro de dossier</small><div style="font-family:var(--font-h);font-size:1.8rem;font-weight:900;color:var(--navy)">${ref}</div></div>
-      <p style="color:var(--muted)">Vous serez contacté(e) au <b>${d.tel}</b>. Pensez à préparer : copie du Bac (ou diplôme), relevés de notes, acte de naissance et photos d'identité.</p>`);
+      <p style="color:var(--muted)">${nbPj ? `<b>${nbPj}</b> pièce(s) jointe(s) transmise(s). ` : ""}Vous serez contacté(e) au <b>${d.tel}</b>. Pensez à préparer : copie du Bac (ou diplôme), relevés de notes, acte de naissance et photos d'identité.</p>`);
   });
   show(0);
 }
