@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Logo UIBCON">
+  <circle cx="60" cy="60" r="56" fill="#0f2a5e"/>
+  <circle cx="60" cy="60" r="56" fill="none" stroke="#f2b705" stroke-width="3"/>
+  <path d="M60 22 L98 38 L60 54 L22 38 Z" fill="#f2b705"/>
+  <path d="M38 48 V62 C38 70 82 70 82 62 V48 L60 57 Z" fill="#17a05a"/>
+  <path d="M98 38 V56" stroke="#f2b705" stroke-width="3" stroke-linecap="round"/>
+  <text x="60" y="92" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="900" font-size="19" fill="#fff" letter-spacing="1">UIBCON</text>
+  <rect x="34" y="97" width="52" height="3" rx="1.5" fill="#17a05a"/>
+</svg>

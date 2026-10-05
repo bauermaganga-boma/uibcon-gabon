@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#0f2a5e">
+<title>Planning & agenda – UIBCON · Université internationale Brice Clotaire Oligui Nguema</title>
+<meta name="description" content="Agenda de la rentrée et exemple d'emploi du temps de l'Université internationale Brice Clotaire Oligui Nguema : planning par classe, examens et événements.">
+<link rel="icon" href="assets/img/logo-uibcon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="planning">
+<div id="site-header"></div>
+
+<header class="page-hero">
+  <img class="bg" src="assets/img/pedagogique-a.jpg" alt="">
+  <div class="wrap">
+    <p class="crumbs"><a href="index.html">Accueil</a> / Planning</p>
+    <h1>Planning & agenda</h1>
+    <p>Les dates clés de la rentrée et un exemple d'emploi du temps : chaque classe voit sa semaine, ses examens et les événements du campus.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap split" style="align-items:start">
+    <div>
+      <span class="eyebrow rv">Dates clés</span>
+      <h2 class="rv d1" style="font-size:clamp(1.7rem,3.2vw,2.4rem);color:var(--navy);margin:.6rem 0 1.2rem">Agenda de la rentrée 2026 – 2027</h2>
+      <div class="agenda-card rv" id="home-agenda"></div>
+      <p class="pub-note">Dates relevées dans la presse gabonaise. Les dates de début de cours par filière seront confirmées par la scolarité.</p>
+    </div>
+    <div>
+      <span class="eyebrow rv">Pour les étudiants et enseignants</span>
+      <h2 class="rv d1" style="font-size:clamp(1.7rem,3.2vw,2.4rem);color:var(--navy);margin:.6rem 0 1rem">Votre planning dans l'Espace numérique</h2>
+      <ul class="checks rv d2">
+        <li><b>Étudiants</b> : emploi du temps de la classe, prochains examens et carte « Aujourd'hui »</li>
+        <li><b>Enseignants</b> : « Mon planning » (toutes vos classes) et programmation d'examens avec annonce automatique</li>
+        <li><b>Scolarité</b> : construction de l'emploi du temps avec détection des conflits de salle, de classe et d'enseignant</li>
+      </ul>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.4rem" class="rv d3">
+        <a class="btn btn-orange" href="espace.html?role=etudiant&demo=1">Tester l'espace étudiant</a>
+        <a class="btn btn-line" href="espace.html?role=admin&demo=1">Tester la scolarité</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bg-white">
+  <div class="wrap">
+    <div class="center"><div class="sec-head"><span class="eyebrow">Exemple</span><h2>Emploi du temps type par classe</h2><p>Choisissez une classe et naviguez de semaine en semaine.</p></div></div>
+    <div class="pub-plan">
+      <div class="pl-toolbar"><select id="pp-classe" aria-label="Classe"></select><div id="pp-nav"></div></div>
+      <div id="pp-grid"></div>
+    </div>
+    <p class="pub-note">Exemple de démonstration (classes et cours fictifs). L'emploi du temps officiel de chaque classe est publié par la scolarité dans l'Espace numérique.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><div><span class="eyebrow rv">À venir</span><h2 class="rv d1">Examens & événements de l'exemple</h2></div></div>
+    <div id="pp-agenda"></div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/planning.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+(() => {
+  const P = Planning, db = Store.loadSample();
+  let cls = db.classes[0].id, wk = P.monday(new Date());
+  const sel = document.getElementById("pp-classe");
+  sel.innerHTML = db.classes.map(c => `<option value="${c.id}">${c.nom}</option>`).join("");
+  const label = s => { const m = Store.matiere(s.matiere), u = m && Store.user(m.prof); return {t:m ? m.nom : "Cours", sub:[s.salle, u ? (u.civ ? u.civ + " " : "") + u.nom : ""].filter(Boolean).join(" · ")}; };
+  const events = () => db.evenements.filter(e => e.type !== "reunion" && (e.classe === "*" || e.classe === cls));
+  const draw = day => {
+    document.getElementById("pp-nav").innerHTML = P.weekNav(wk);
+    P.week(document.getElementById("pp-grid"), {seances:Store.seancesClasse(cls), events:events(), week:wk, label, day});
+    document.getElementById("pp-agenda").innerHTML = P.agenda(events(), null);
+  };
+  sel.onchange = () => { cls = sel.value; draw(); };
+  document.getElementById("pp-nav").addEventListener("click", e => {
+    const b = e.target.closest("[data-w]"); if (!b) return; const n = +b.dataset.w;
+    wk = n === 0 ? P.monday(new Date()) : P.addDays(wk, n); draw();
+  });
+  draw();
+})();
+</script>
+</body>
+</html>
