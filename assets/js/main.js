@@ -36,8 +36,8 @@ function renderChrome() {
     <div class="tb-r"><a href="espace.html?role=etudiant">${ICONS.cap}Espace étudiant</a><a href="espace.html?role=enseignant">${ICONS.lock}Espace enseignant</a></div>
   </div></div>
   <header class="header"><div class="wrap">
-    <a class="brand" href="index.html"><img src="assets/img/logo-uibcon.svg" alt="Logo UIBCON"><span><b>UIBCON</b><small>Université internationale<br>Brice Clotaire Oligui Nguema</small></span></a>
-    <nav class="nav" id="nav">${links.map(([k,l]) => `<a href="${k}.html" class="${k===page?"active":""}">${l}</a>`).join("")}<a class="btn btn-orange" href="admission.html#preinscription">Pré-inscription</a></nav>
+    <a class="brand" href="index.html"><img src="assets/img/logo-uibcon.svg" alt="Logo UIBCON"><span><b>UIBCON</b><small>Université internationale<br>Cap Estérias</small></span></a>
+    <nav class="nav" id="nav">${links.map(([k,l]) => `<a href="${k}.html" class="${k===page?"active":""}${k==="hotel"?" hot":""}">${k==="hotel"?"Hôtel-restaurant":l}</a>`).join("")}<a class="btn btn-orange" href="admission.html#preinscription">Pré-inscription</a></nav>
     <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div></header>`;
 
@@ -195,13 +195,30 @@ function initAccess() {
   const showDemo = (window.ESM_CONFIG || {}).showDemo !== false;
   const link = e => `espace.html?role=${e.role}${showDemo ? "&demo=1" : ""}`;
   const q = $("#quick-access");
-  if (q) q.innerHTML = `<span class="ql">${ICONS.lock} Espace numérique</span>` + ESPACES.map(e => `<a href="${link(e)}" class="qbtn">${ICONS[e.ic]}${e.t}</a>`).join("");
+  if (q) q.innerHTML = `<span class="ql">${ICONS.lock} Espace numérique</span>` + ESPACES.map(e => `<a href="${link(e)}" class="qbtn">${ICONS[e.ic]}${e.t}</a>`).join("") + `<a href="hotel.html" class="qbtn gold">${ICONS.bed}Hôtel-restaurant</a>`;
   const c = $("#access-cards");
   if (c) c.innerHTML = ESPACES.map((e, i) => `<article class="acard rv d${i}" style="--c:${e.c}">
       <div class="ah"><span class="aic">${ICONS[e.ic]}</span><span><h3>${e.t}</h3><small>${e.s}</small></span></div>
       <ul>${e.pts.map(p => `<li>${p}</li>`).join("")}</ul>
       ${showDemo ? `<div class="creds"><small>Compte de démonstration · ${e.demo.nom}</small><div><span>Identifiant <b>${e.demo.login}</b></span><span>Mot de passe <b>${e.demo.pwd}</b></span></div></div>` : ""}
       <a class="btn btn-sm acta" href="${link(e)}">${showDemo ? "Tester l'espace " + e.t.toLowerCase() : "Accéder à mon espace"} ${ICONS.arrow}</a>
+    </article>`).join("");
+}
+
+/* ---------- Hôtel-restaurant : accès (accueil) ---------- */
+function initHotelAccess() {
+  const c = $("#hotel-access"); if (!c) return;
+  const showDemo = (window.ESM_CONFIG || {}).showDemo !== false;
+  const cards = [
+    {c:"#1f5fb8", ic:"globe", t:"Clients & visiteurs", s:"Réserver en ligne", pts:["Chambres et disponibilités en direct","Réservation de table (3 services par jour)","Carte du restaurant et tarifs"], href:"hotel.html", cta:"Réserver maintenant"},
+    {c:"#c8202f", ic:"bed", t:"Réception & direction", s:"Gérer l'établissement", pts:["Tableau de bord et planning des chambres","Réservations, arrivées, départs, reçus","Restaurant, carte et équipe de stagiaires"], demo:{login:"hotel", pwd:"hotel2026", nom:"Direction de l'hôtel-restaurant"}, href:"espace.html?role=hotel&demo=1", cta:"Tester la gestion"},
+    {c:"#0f2a5e", ic:"shield", t:"Scolarité (supervision)", s:"Suivre l'activité", pts:["Même module, depuis l'espace scolarité","Vue d'ensemble de l'université","Comptes et planning pédagogique"], demo:{login:"scolarite", pwd:"admin2026", nom:"Service Scolarité"}, href:"espace.html?role=admin&demo=1&next=gestion-hotel.html", cta:"Tester en scolarité"},
+  ];
+  c.innerHTML = cards.map((e, i) => `<article class="acard rv d${i}" style="--c:${e.c}">
+      <div class="ah"><span class="aic">${ICONS[e.ic]}</span><span><h3>${e.t}</h3><small>${e.s}</small></span></div>
+      <ul>${e.pts.map(p => `<li>${p}</li>`).join("")}</ul>
+      ${e.demo && showDemo ? `<div class="creds"><small>Compte de démonstration · ${e.demo.nom}</small><div><span>Identifiant <b>${e.demo.login}</b></span><span>Mot de passe <b>${e.demo.pwd}</b></span></div></div>` : ""}
+      <a class="btn btn-sm acta" href="${e.href}">${e.cta} ${ICONS.arrow}</a>
     </article>`).join("");
 }
 
@@ -268,6 +285,6 @@ function initContact() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderChrome(); initChrome(); initHero(); initFormations(); initPartners(); initNews(); initGallery(); initQuotes(); initAccess(); initAgenda(); initAdmission(); initContact();
+  renderChrome(); initChrome(); initHero(); initFormations(); initPartners(); initNews(); initGallery(); initQuotes(); initAccess(); initHotelAccess(); initAgenda(); initAdmission(); initContact();
   initReveal();
 });

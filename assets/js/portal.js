@@ -189,7 +189,7 @@ const P = (() => {
   function account(el) {
     el.innerHTML = `<div class="cols"><div class="card"><h2>Mon profil</h2>
         <div class="stu" style="margin-bottom:1rem"><span class="av" style="width:56px;height:56px;font-size:1.1rem">${ini(me)}</span><span><b style="font-size:1.1rem">${esc(full(me))}</b><small>${esc(me.titre || Store.classe(me.classe)?.nom || "")}</small></span></div>
-        <p style="color:var(--muted)">Identifiant de connexion : <b style="color:var(--navy)">${esc(me.login)}</b>${me.matricule ? `<br>Matricule : <b style="color:var(--navy)">${esc(me.matricule)}</b>` : ""}<br>Profil : <b style="color:var(--navy)">${{admin:"Scolarité", enseignant:"Enseignant", etudiant:"Étudiant"}[me.role]}</b></p></div>
+        <p style="color:var(--muted)">Identifiant de connexion : <b style="color:var(--navy)">${esc(me.login)}</b>${me.matricule ? `<br>Matricule : <b style="color:var(--navy)">${esc(me.matricule)}</b>` : ""}<br>Profil : <b style="color:var(--navy)">${{admin:"Scolarité", enseignant:"Enseignant", etudiant:"Étudiant", hotel:"Hôtel-restaurant"}[me.role]}</b></p></div>
       <div class="card"><h2>Changer mon mot de passe</h2><form class="form" id="pwf">
         <div class="field"><label for="np1">Nouveau mot de passe</label><input id="np1" type="password" minlength="6" required autocomplete="new-password"></div>
         <div class="field"><label for="np2">Confirmer</label><input id="np2" type="password" minlength="6" required autocomplete="new-password"></div>
@@ -206,6 +206,7 @@ const P = (() => {
      ========================================================= */
   function teacher() { boot("enseignant", teacherApp); }
   function teacherApp() {
+    if (me.role === "hotel") { location.replace("gestion-hotel.html"); return; }
     const admin = me.role === "admin", db = Store.db;
     const mats = () => admin ? db().matieres : db().matieres.filter(m => m.prof === me.id);
     const myClasses = () => admin ? db().classes : db().classes.filter(c => mats().some(m => m.classe === c.id));
@@ -547,7 +548,7 @@ const P = (() => {
   /* Gestion de l'hôtel-restaurant : réservé à la scolarité */
   function hotel(start) {
     boot("enseignant", () => {
-      if (me.role !== "admin") { location.replace("enseignant.html"); return; }
+      if (me.role !== "admin" && me.role !== "hotel") { location.replace("enseignant.html"); return; }
       start({shell, me, esc, kpis, act, empty, ss, rerender:() => route(false)});
     });
   }

@@ -21,6 +21,10 @@ const Hotel = (() => {
   const uid = () => "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const prix = t => (HOTEL.types[t] || {prix:0}).prix;
 
+  /* Tarifs étudiants (300 à 1 000 FCFA, sur présentation de la carte d'étudiant) */
+  const ETU = {"Petit-déjeuner continental":700,"Petit-déjeuner gabonais":500,"Omelette & pain":400,"Salade de crudités":500,"Salade d'avocat et crevettes":800,"Soupe de poisson":500,"Beignets de plantain":300,"Poulet nyembwe":1000,"Sauce graine & riz":900,"Maboké de capitaine":1000,"Feuilles de manioc":800,"Poisson braisé":1000,"Brochettes de poulet":900,"Soya (brochettes de bœuf)":700,"Steak frites":1000,"Crevettes sautées à l'ail":1000,"Salade de fruits tropicaux":400,"Beignets sucrés":300,"Gâteau du chef":500,"Glace artisanale (2 boules)":400,"Eau minérale":300,"Jus d'ananas ou de gingembre frais":400,"Bissap":300,"Sodas":400,"Café ou thé":300};
+  const ETU_MIN = 300, ETU_MAX = 1000;
+
   /* ---------- Données de démonstration (dates relatives à aujourd'hui) ---------- */
   function seed() {
     const T = today(), o = n => addDays(T, n);
@@ -103,6 +107,7 @@ const Hotel = (() => {
       eq("Merveille Ondo", "Cuisine · pâtisserie", [1, 2, 3, 4, 5], "14:00", "21:00", "Licence 1 · Restauration"),
       eq("Loïc Mabika", "Accueil · conciergerie", [1, 3, 5, 6], "08:00", "16:00", "Licence 1 · Tourisme"),
     ];
+    menu.forEach(m => { if (ETU[m.nom]) m.etu = ETU[m.nom]; });
     return {v:1, chambres:ch, reservations, resaTables, menu, equipe};
   }
 
@@ -112,6 +117,8 @@ const Hotel = (() => {
     let d = null; try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
     if (!d || d.v !== 1) { d = seed(); H = d; save(); }
     H = d;
+    // anciennes démos : ajoute les tarifs étudiants manquants
+    if (H.menu.some(m => m.etu === undefined && ETU[m.nom])) { H.menu.forEach(m => { if (m.etu === undefined && ETU[m.nom]) m.etu = ETU[m.nom]; }); save(); }
   }
   async function client() { await Store.ready(); sb = Store.client(); return sb; }
   async function loadTable(key) {
@@ -219,7 +226,7 @@ const Hotel = (() => {
       let cur = cats[0];
       const draw = () => {
         tabs.innerHTML = cats.map(c => `<button class="tab ${c === cur ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
-        menuBox.innerHTML = items.filter(m => m.cat === cur).map(m => `<div class="dish"><div><b>${esc(m.nom)}</b><small>${esc(m.desc || "")}</small></div><span>${fcfa(m.prix)}</span></div>`).join("");
+        menuBox.innerHTML = items.filter(m => m.cat === cur).map(m => `<div class="dish"><div><b>${esc(m.nom)}</b><small>${esc(m.desc || "")}</small></div><span>${m.etu ? `<em class="etu">Étudiant ${fcfa(m.etu)}</em>` : ""}${fcfa(m.prix)}</span></div>`).join("");
       };
       tabs.addEventListener("click", e => { const b = e.target.closest("[data-c]"); if (b) { cur = b.dataset.c; draw(); } });
       draw();
@@ -284,7 +291,8 @@ const Hotel = (() => {
     deleteResa: id => del("reservations", id),
     saveResaTable: t => { if (!t.ref) t.ref = "TAB-26-" + String(200 + H.resaTables.length + 1).padStart(4, "0") + (LIVE ? Math.random().toString(36).slice(2, 4).toUpperCase() : ""); if (!t.creation) t.creation = new Date().toISOString(); return put("resaTables", t); },
     deleteResaTable: id => del("resaTables", id),
-    saveMenu: m => put("menu", m), deleteMenu: id => del("menu", id),
+    ETU_MIN, ETU_MAX,
+    saveMenu: m => { if (m.etu != null && m.etu !== "" && (+m.etu < ETU_MIN || +m.etu > ETU_MAX)) return Promise.reject(new Error("Le tarif étudiant doit être entre " + ETU_MIN + " et " + ETU_MAX + " FCFA.")); m.etu = m.etu === "" || m.etu == null ? null : +m.etu; return put("menu", m); }, deleteMenu: id => del("menu", id),
     saveEquipe: e => put("equipe", e), deleteEquipe: id => del("equipe", id),
   };
 })();

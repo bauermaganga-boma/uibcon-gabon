@@ -30,6 +30,7 @@
         <button type="button" data-role="etudiant" class="on">Étudiant</button>
         <button type="button" data-role="enseignant">Enseignant</button>
         <button type="button" data-role="admin">Scolarité</button>
+        <button type="button" data-role="hotel">Hôtel</button>
       </div>
       <form class="form" id="login-form">
         <div class="field"><label for="login" id="login-label">Matricule</label><input id="login" name="login" required autocomplete="username"></div>
@@ -51,6 +52,7 @@
   const cfg = {
     etudiant: {label:"Matricule", img:"campus-vue-haute", t:"Votre campus, partout, tout le temps.", p:"Emploi du temps, notes, bulletins, annonces des enseignants et messagerie : tout votre parcours réuni en un seul endroit.", demo:[["UIBCON26-001","uibcon2026","Arnaud Nzé · IST Numérique"],["UIBCON26-015","uibcon2026","Davy Mapangou · IST Énergies"]], go:"etudiant.html"},
     enseignant: {label:"Identifiant enseignant", img:"salle-de-cours", t:"Le back-office des enseignants.", p:"Saisissez les notes, publiez annonces et devoirs, suivez la progression de vos classes et répondez à vos étudiants.", demo:[["p.ndong","prof2026","M. Paul Ndong · Numérique & Énergies"],["c.mba","prof2026","Mme Clarisse Mba · Langues & Tourisme"],["s.obiang","prof2026","M. Serge Obiang · Gestion & Éducation"]], go:"enseignant.html"},
+    hotel: {label:"Identifiant hôtel-restaurant", img:"campus-aerien", t:"La gestion de l'hôtel-restaurant.", p:"Planning des chambres, réservations, restaurant et carte, équipe de stagiaires : tout l'établissement en un seul endroit.", demo:[["hotel","hotel2026","Direction de l'hôtel-restaurant"]], go:"gestion-hotel.html"},
     admin: {label:"Identifiant administration", img:"pedagogique-a", t:"Pilotage de la scolarité.", p:"Planning des salles, emplois du temps, pré-inscriptions, messages du site, résultats par classe et annonces à toute l'université.", demo:[["scolarite","admin2026","Service Scolarité"]], go:"enseignant.html"},
   };
   let role = new URLSearchParams(location.search).get("role");
@@ -78,7 +80,7 @@
   });
   set(role);
   // Accès en un clic depuis l'accueil (?demo=1) : connexion automatique au compte de démonstration
-  const P = new URLSearchParams(location.search), E = (typeof ESPACES !== "undefined" ? ESPACES : []).find(x => x.role === role);
+  const P = new URLSearchParams(location.search), E = (typeof ESPACES !== "undefined" ? ESPACES : []).find(x => x.role === role) || (role === "hotel" ? {role:"hotel", t:"Hôtel", demo:{login:cfg.hotel.demo[0][0], pwd:cfg.hotel.demo[0][1]}} : null);
   if (P.get("demo") === "1" && E && (window.ESM_CONFIG || {}).showDemo !== false) {
     document.getElementById("login").value = E.demo.login; document.getElementById("pwd").value = E.demo.pwd;
     toast(`Connexion à l'espace ${E.t.toLowerCase()} de démonstration…`);

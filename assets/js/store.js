@@ -35,6 +35,7 @@ const Store = (() => {
     const noms = "Nzé Mba Ondo Obiang Nguema Moussavou Mabika Essono Mintsa Boussougou Koumba Mouele Ella Oyane Mapangou Nzamba Bivigou Engone Ntoutoume Mengue Assoumou Makaya Ekomi Ibinga Nkoghe Ango Mboumba Ndoutoume".split(" ");
     const users = [
       {id:"adm", role:"admin", login:"scolarite", pwd:"admin2026", prenom:"Service", nom:"Scolarité", titre:"Administration"},
+      {id:"htl", role:"hotel", login:"hotel", pwd:"hotel2026", prenom:"Direction", nom:"Hôtel-restaurant", titre:"Hôtel-restaurant d'application"},
       {id:"t1", role:"enseignant", login:"p.ndong", pwd:"prof2026", prenom:"Paul", nom:"Ndong", civ:"M.", titre:"Numérique & Énergies renouvelables"},
       {id:"t2", role:"enseignant", login:"c.mba", pwd:"prof2026", prenom:"Clarisse", nom:"Mba", civ:"Mme", titre:"Langues, Tourisme & Pédagogie"},
       {id:"t3", role:"enseignant", login:"s.obiang", pwd:"prof2026", prenom:"Serge", nom:"Obiang", civ:"M.", titre:"Gestion, Hôtellerie & Éducation"},
@@ -138,7 +139,7 @@ const Store = (() => {
   }
 
   const Demo = {
-    load() { let d; try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} if (!d || d.v !== 1) { d = seed(); db = d; this.save(); } db = d; db.rangs = {}; if (!db.seances) { seedPlanning(db); this.save(); } },
+    load() { let d; try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} if (!d || d.v !== 1) { d = seed(); db = d; this.save(); } db = d; db.rangs = {}; if (!db.users.some(u => u.role === "hotel")) { db.users.push({id:"htl", role:"hotel", login:"hotel", pwd:"hotel2026", prenom:"Direction", nom:"Hôtel-restaurant", titre:"Hôtel-restaurant d'application"}); this.save(); } if (!db.seances) { seedPlanning(db); this.save(); } },
     save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} },
     async init() { this.load(); let id; try { id = sessionStorage.getItem(SKEY); } catch (e) {} me = id ? db.users.find(u => u.id === id) || null : null; return me; },
     async login(login, pwd, role) {

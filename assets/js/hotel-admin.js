@@ -144,7 +144,7 @@ const HotelAdmin = (() => {
           <div class="jauges">${jauge}</div>
           ${L.length ? `<div class="tbl-wrap"><table class="tbl"><tr><th>Heure</th><th>Service</th><th>Nom</th><th>Couverts</th><th>Statut</th><th></th></tr>${L.map(t => `<tr><td><b>${t.heure.replace(":", "h")}</b></td><td>${t.service}</td><td>${esc(t.nom)}<br><small style="color:var(--muted)">${esc(t.tel)}${t.note ? " · " + esc(t.note) : ""}</small></td><td>${t.couverts}</td><td><select data-ts="${t.id}" class="chip ${CHIP[t.statut]}" style="border:0;cursor:pointer">${["en attente", "confirmée", "arrivé", "annulée"].map(s => `<option ${s === t.statut ? "selected" : ""}>${s}</option>`).join("")}</select></td><td><button class="btn btn-line btn-sm" data-td-del="${t.id}">Supprimer</button></td></tr>`).join("")}</table></div>` : A.empty("Aucune table réservée ce jour-là.", "inbox")}</div>
           <div class="card"><h2>Carte du restaurant <button class="btn btn-orange btn-sm" id="mnew">+ Plat ou boisson</button></h2>
-          ${HOTEL.menuCats.map(c => { const it = menu.filter(m => m.cat === c); return it.length ? `<h4 style="color:var(--navy);margin:1rem 0 .5rem">${c}</h4><div class="tbl-wrap"><table class="tbl"><tbody>${it.map(m => `<tr><td><b>${esc(m.nom)}</b><br><small style="color:var(--muted)">${esc(m.desc || "")}</small></td><td style="white-space:nowrap">${f$(m.prix)}</td><td><label style="display:flex;gap:.4rem;align-items:center;font-size:.8rem"><input type="checkbox" data-md="${m.id}" ${m.dispo !== false ? "checked" : ""}> Disponible</label></td><td style="white-space:nowrap"><button class="btn btn-line btn-sm" data-me="${m.id}">Modifier</button></td></tr>`).join("")}</tbody></table></div>` : ""; }).join("")}</div>`;
+          ${HOTEL.menuCats.map(c => { const it = menu.filter(m => m.cat === c); return it.length ? `<h4 style="color:var(--navy);margin:1rem 0 .5rem">${c}</h4><div class="tbl-wrap"><table class="tbl"><tbody>${it.map(m => `<tr><td><b>${esc(m.nom)}</b><br><small style="color:var(--muted)">${esc(m.desc || "")}</small></td><td style="white-space:nowrap">${f$(m.prix)}<br><small style="color:var(--ok);font-weight:700">${m.etu ? "Étudiant " + f$(m.etu) : "Pas de tarif étudiant"}</small></td><td><label style="display:flex;gap:.4rem;align-items:center;font-size:.8rem"><input type="checkbox" data-md="${m.id}" ${m.dispo !== false ? "checked" : ""}> Disponible</label></td><td style="white-space:nowrap"><button class="btn btn-line btn-sm" data-me="${m.id}">Modifier</button></td></tr>`).join("")}</tbody></table></div>` : ""; }).join("")}</div>`;
         const setD = d => { A.ss("hot_td", d); reload(); };
         el.querySelector("#td").onchange = e => e.target.value && setD(e.target.value);
         el.querySelectorAll("[data-dn]").forEach(b => b.onclick = () => setD(H.addDays(d0, +b.dataset.dn)));
@@ -211,10 +211,11 @@ const HotelAdmin = (() => {
   function menuModal(m) {
     const box = modal(m.id ? "Modifier le plat" : "Nouveau plat ou boisson", `<form class="form" id="mf"><div class="field"><label>Nom *</label><input name="nom" required maxlength="80" value="${esc(m.nom || "")}"></div>
       <div class="field"><label>Description</label><input name="desc" maxlength="200" value="${esc(m.desc || "")}"></div>
-      <div class="row"><div class="field"><label>Catégorie</label>${sel("cat", HOTEL.menuCats.map(c => [c, c]), m.cat || "Plats gabonais")}</div><div class="field"><label>Prix (FCFA)</label><input type="number" name="prix" min="0" step="100" required value="${m.prix ?? 5000}"></div></div>
+      <div class="row"><div class="field"><label>Catégorie</label>${sel("cat", HOTEL.menuCats.map(c => [c, c]), m.cat || "Plats gabonais")}</div><div class="field"><label>Prix public (FCFA)</label><input type="number" name="prix" min="0" step="100" required value="${m.prix ?? 5000}"></div></div>
+      <div class="field"><label>Tarif étudiant (FCFA, entre ${H.ETU_MIN} et ${H.ETU_MAX} — vide = aucun)</label><input type="number" name="etu" min="${H.ETU_MIN}" max="${H.ETU_MAX}" step="50" value="${m.etu ?? ""}"></div>
       <div style="display:flex;gap:.6rem"><button class="btn btn-orange">Enregistrer</button>${m.id ? `<button type="button" class="btn btn-line" id="mdel" style="color:var(--bad)">Supprimer</button>` : ""}</div></form>`);
     const f = box.querySelector("#mf");
-    f.onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(f)); d.prix = +d.prix; d.dispo = m.dispo !== false; if (m.id) d.id = m.id; if (await A.act(() => H.saveMenu(d), "Carte mise à jour.")) { box.classList.remove("on"); reload(); } };
+    f.onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(f)); d.prix = +d.prix; d.etu = d.etu === "" ? null : +d.etu; d.dispo = m.dispo !== false; if (m.id) d.id = m.id; if (await A.act(() => H.saveMenu(d), "Carte mise à jour.")) { box.classList.remove("on"); reload(); } };
     const del = box.querySelector("#mdel"); if (del) del.onclick = async () => { if (confirm("Supprimer ce plat de la carte ?") && await A.act(() => H.deleteMenu(m.id), "Plat supprimé.")) { box.classList.remove("on"); reload(); } };
   }
 
@@ -229,7 +230,7 @@ const HotelAdmin = (() => {
       {id:"restaurant", l:"Restaurant & carte", ic:"book", s:"Tables réservées, couverts par service et carte du restaurant"},
       {id:"chambres", l:"Chambres & ménage", ic:"bed", s:"Parc de chambres, tarifs par type et état de propreté"},
       {id:"equipe", l:"Équipe de stagiaires", ic:"users", s:"Étudiants en pratique : postes et horaires de la semaine"},
-      {id:"retour", l:"Retour à la scolarité", ic:"shield", s:"", href:"enseignant.html"},
+      ...(api.me.role === "admin" ? [{id:"retour", l:"Retour à la scolarité", ic:"shield", s:"", href:"enseignant.html"}] : []),
     ], views(), "Hôtel-restaurant");
   }
   return {start};

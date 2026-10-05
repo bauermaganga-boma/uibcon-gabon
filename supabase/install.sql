@@ -14,7 +14,7 @@ create table if not exists public.classes (
 
 create table if not exists public.profiles (
   id        uuid primary key references auth.users on delete cascade,
-  role      text not null check (role in ('admin','enseignant','etudiant')),
+  role      text not null check (role in ('admin','enseignant','etudiant','hotel')),
   login     text not null unique,
   prenom    text not null,
   nom       text not null,
@@ -243,7 +243,7 @@ language plpgsql security definer set search_path = public, extensions as $$
 declare uid uuid := gen_random_uuid(); em text := lower(trim(p_login)) || '@uibcon.local';
 begin
   if length(coalesce(p_password,'')) < 6 then raise exception 'Le mot de passe doit contenir au moins 6 caractères'; end if;
-  if p_role not in ('admin','enseignant','etudiant') then raise exception 'Rôle invalide'; end if;
+  if p_role not in ('admin','enseignant','etudiant','hotel') then raise exception 'Rôle invalide'; end if;
   if p_role = 'etudiant' and p_classe is null then raise exception 'Un étudiant doit avoir une classe'; end if;
   if exists(select 1 from profiles where lower(login) = lower(trim(p_login))) then raise exception 'Cet identifiant existe déjà'; end if;
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -425,8 +425,10 @@ create table if not exists public.hotel_resa_tables (
 );
 create table if not exists public.hotel_menu (
   id uuid primary key default gen_random_uuid(),
-  cat text not null, nom text not null, "desc" text, prix int not null default 0, dispo boolean not null default true
+  cat text not null, nom text not null, "desc" text, prix int not null default 0, dispo boolean not null default true,
+  etu int check (etu is null or etu between 300 and 1000)      -- tarif étudiant (300 à 1 000 FCFA)
 );
+alter table public.hotel_menu add column if not exists etu int check (etu is null or etu between 300 and 1000);
 create table if not exists public.hotel_equipe (
   id uuid primary key default gen_random_uuid(),
   nom text not null, poste text not null, jours int[] not null, debut text not null, fin text not null, promo text
@@ -437,17 +439,17 @@ alter table public.hotel_resa_tables enable row level security;
 alter table public.hotel_menu enable row level security;
 alter table public.hotel_equipe enable row level security;
 drop policy if exists hotel_chambres_admin on public.hotel_chambres;
-create policy hotel_chambres_admin on public.hotel_chambres for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+create policy hotel_chambres_admin on public.hotel_chambres for all to authenticated using (my_role() in ('admin','hotel')) with check (my_role() in ('admin','hotel'));
 drop policy if exists hotel_resa_admin on public.hotel_reservations;
-create policy hotel_resa_admin on public.hotel_reservations for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+create policy hotel_resa_admin on public.hotel_reservations for all to authenticated using (my_role() in ('admin','hotel')) with check (my_role() in ('admin','hotel'));
 drop policy if exists hotel_tables_admin on public.hotel_resa_tables;
-create policy hotel_tables_admin on public.hotel_resa_tables for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+create policy hotel_tables_admin on public.hotel_resa_tables for all to authenticated using (my_role() in ('admin','hotel')) with check (my_role() in ('admin','hotel'));
 drop policy if exists hotel_equipe_admin on public.hotel_equipe;
-create policy hotel_equipe_admin on public.hotel_equipe for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+create policy hotel_equipe_admin on public.hotel_equipe for all to authenticated using (my_role() in ('admin','hotel')) with check (my_role() in ('admin','hotel'));
 drop policy if exists hotel_menu_read on public.hotel_menu;
 create policy hotel_menu_read on public.hotel_menu for select to anon, authenticated using (true);
 drop policy if exists hotel_menu_admin on public.hotel_menu;
-create policy hotel_menu_admin on public.hotel_menu for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+create policy hotel_menu_admin on public.hotel_menu for all to authenticated using (my_role() in ('admin','hotel')) with check (my_role() in ('admin','hotel'));
 
 create sequence if not exists public.hotel_resa_seq start 200;
 create sequence if not exists public.hotel_table_seq start 300;
@@ -544,3 +546,15 @@ select * from (values
  ('Merveille Ondo','Cuisine · pâtisserie',array[1,2,3,4,5],'14:00','21:00','Licence 1 · Restauration'),
  ('Loïc Mabika','Accueil · conciergerie',array[1,3,5,6],'08:00','16:00','Licence 1 · Tourisme')) v(nom, poste, jours, debut, fin, promo)
 where not exists (select 1 from public.hotel_equipe);
+
+-- Compte de démonstration du profil Hôtel-restaurant (à supprimer ou changer le mot de passe en production)
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('admin','enseignant','etudiant','hotel'));
+do $$ begin
+  if not exists (select 1 from profiles where login = 'hotel') then
+    perform _create_user('hotel', 'hotel2026', 'hotel', 'Direction', 'Hôtel-restaurant', null, null, 'Hôtel-restaurant d''application');
+  end if;
+end $$;
+
+-- Tarifs étudiants du restaurant (300 à 1 000 FCFA)
+update public.hotel_menu m set etu = v.etu from (values ('Petit-déjeuner continental',700),('Petit-déjeuner gabonais',500),('Omelette & pain',400),('Salade de crudités',500),('Salade d''avocat et crevettes',800),('Soupe de poisson',500),('Beignets de plantain',300),('Poulet nyembwe',1000),('Sauce graine & riz',900),('Maboké de capitaine',1000),('Feuilles de manioc',800),('Poisson braisé',1000),('Brochettes de poulet',900),('Soya (brochettes de bœuf)',700),('Steak frites',1000),('Crevettes sautées à l''ail',1000),('Salade de fruits tropicaux',400),('Beignets sucrés',300),('Gâteau du chef',500),('Glace artisanale (2 boules)',400),('Eau minérale',300),('Jus d''ananas ou de gingembre frais',400),('Bissap',300),('Sodas',400),('Café ou thé',300)) v(nom, etu) where m.nom = v.nom and m.etu is null;
