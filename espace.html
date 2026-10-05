@@ -74,7 +74,7 @@
     btn.disabled = false; btn.textContent = "Se connecter";
     if (!u) return toast("Identifiants incorrects pour ce profil.", "err");
     toast(`Bienvenue ${u.prenom} !`, "ok");
-    setTimeout(() => location.href = cfg[role].go, 500);
+    const nx = new URLSearchParams(location.search).get("next"); setTimeout(() => location.href = (role === "admin" && /^gestion-hotel.html$/.test(nx || "")) ? nx : cfg[role].go, 500);
   });
   set(role);
   // Accès en un clic depuis l'accueil (?demo=1) : connexion automatique au compte de démonstration

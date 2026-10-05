@@ -204,6 +204,7 @@ create policy evenements_delete on public.evenements for delete to authenticated
 -- 4. Fonctions appelées par le site
 -- ---------------------------------------------------------------------
 -- Pré-inscription publique : renvoie le numéro de dossier
+alter table public.candidatures add column if not exists pays text;
 create or replace function public.submit_candidature(d jsonb) returns text
 language plpgsql security definer set search_path = public as $$
 declare r text;
@@ -212,9 +213,9 @@ begin
     raise exception 'Prénom, nom et téléphone sont obligatoires';
   end if;
   r := 'UIBCON-' || to_char(now(), 'YY') || '-' || lpad(nextval('candidature_seq')::text, 4, '0');
-  insert into candidatures(ref, prenom, nom, tel, email, naissance, ville, formation, formation_label, niveau, serie, motivation, source)
+  insert into candidatures(ref, prenom, nom, tel, email, naissance, ville, pays, formation, formation_label, niveau, serie, motivation, source)
   values (r, left(d->>'prenom',80), left(d->>'nom',80), left(d->>'tel',40), nullif(left(d->>'email',200),''),
-          nullif(d->>'naissance','')::date, left(d->>'ville',80), left(d->>'formation',40), left(d->>'formationLabel',200),
+          nullif(d->>'naissance','')::date, left(d->>'ville',80), left(d->>'pays',60), left(d->>'formation',40), left(d->>'formationLabel',200),
           left(d->>'niveau',60), left(d->>'serie',40), left(d->>'motivation',4000), left(d->>'source',60));
   return r;
 end $$;
@@ -396,3 +397,150 @@ begin
    where ref = p_ref and pieces = '[]'::jsonb and date > now() - interval '1 hour';
 end $$;
 grant execute on function public.attach_pieces(text, jsonb) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- 8. Hôtel-restaurant d'application (gestion + réservations en ligne)
+--    Réservé à la scolarité (rôle admin), sauf la carte du restaurant (lecture publique)
+--    et les deux fonctions de réservation ouvertes aux visiteurs.
+-- ---------------------------------------------------------------------
+create table if not exists public.hotel_chambres (
+  id uuid primary key default gen_random_uuid(),
+  num text unique not null, type text not null check (type in ('standard','confort','suite','famille')),
+  etage int not null default 1, statut text not null default 'propre' check (statut in ('propre','a-nettoyer','maintenance'))
+);
+create table if not exists public.hotel_reservations (
+  id uuid primary key default gen_random_uuid(),
+  ref text unique not null, type text not null, chambre uuid references public.hotel_chambres on delete set null,
+  nom text not null, tel text not null, email text, pays text,
+  arrivee date not null, depart date not null, adultes int not null default 1, enfants int not null default 0, note text,
+  statut text not null default 'en attente' check (statut in ('en attente','confirmée','arrivé','parti','annulée')),
+  total int not null default 0, date timestamptz not null default now(),
+  check (depart > arrivee)
+);
+create table if not exists public.hotel_resa_tables (
+  id uuid primary key default gen_random_uuid(),
+  ref text unique not null, date date not null, heure text not null, service text not null, couverts int not null check (couverts between 1 and 60),
+  nom text not null, tel text not null, statut text not null default 'en attente' check (statut in ('en attente','confirmée','arrivé','annulée')),
+  note text, creation timestamptz not null default now()
+);
+create table if not exists public.hotel_menu (
+  id uuid primary key default gen_random_uuid(),
+  cat text not null, nom text not null, "desc" text, prix int not null default 0, dispo boolean not null default true
+);
+create table if not exists public.hotel_equipe (
+  id uuid primary key default gen_random_uuid(),
+  nom text not null, poste text not null, jours int[] not null, debut text not null, fin text not null, promo text
+);
+alter table public.hotel_chambres enable row level security;
+alter table public.hotel_reservations enable row level security;
+alter table public.hotel_resa_tables enable row level security;
+alter table public.hotel_menu enable row level security;
+alter table public.hotel_equipe enable row level security;
+drop policy if exists hotel_chambres_admin on public.hotel_chambres;
+create policy hotel_chambres_admin on public.hotel_chambres for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists hotel_resa_admin on public.hotel_reservations;
+create policy hotel_resa_admin on public.hotel_reservations for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists hotel_tables_admin on public.hotel_resa_tables;
+create policy hotel_tables_admin on public.hotel_resa_tables for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists hotel_equipe_admin on public.hotel_equipe;
+create policy hotel_equipe_admin on public.hotel_equipe for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+drop policy if exists hotel_menu_read on public.hotel_menu;
+create policy hotel_menu_read on public.hotel_menu for select to anon, authenticated using (true);
+drop policy if exists hotel_menu_admin on public.hotel_menu;
+create policy hotel_menu_admin on public.hotel_menu for all to authenticated using (my_role() = 'admin') with check (my_role() = 'admin');
+
+create sequence if not exists public.hotel_resa_seq start 200;
+create sequence if not exists public.hotel_table_seq start 300;
+
+-- Chambres libres par type sur une période (sans exposer les données des clients)
+create or replace function public.hotel_dispo(p_arrivee date, p_depart date) returns table(type text, libres int)
+language sql stable security definer set search_path = public as $$
+  select c.type, count(*)::int from hotel_chambres c
+  where c.statut <> 'maintenance' and not exists (
+    select 1 from hotel_reservations r where r.chambre = c.id and r.statut not in ('annulée','parti') and r.arrivee < p_depart and p_arrivee < r.depart)
+  group by c.type
+$$;
+grant execute on function public.hotel_dispo(date, date) to anon, authenticated;
+
+-- Réservation de chambre par un visiteur : attribue automatiquement une chambre libre du type demandé
+create or replace function public.hotel_reserver_chambre(d jsonb) returns text
+language plpgsql security definer set search_path = public as $$
+declare a date := (d->>'arrivee')::date; dp date := (d->>'depart')::date; t text := d->>'type'; ch uuid; r text; px int;
+begin
+  if coalesce(trim(d->>'nom'),'') = '' or coalesce(trim(d->>'tel'),'') = '' then raise exception 'Nom et téléphone sont obligatoires'; end if;
+  if a is null or dp is null or dp <= a or a < current_date or dp - a > 60 then raise exception 'Dates invalides'; end if;
+  select c.id into ch from hotel_chambres c where c.type = t and c.statut <> 'maintenance' and not exists (
+    select 1 from hotel_reservations x where x.chambre = c.id and x.statut not in ('annulée','parti') and x.arrivee < dp and a < x.depart)
+    order by c.num limit 1;
+  if ch is null then raise exception 'complet'; end if;
+  px := case t when 'standard' then 25000 when 'confort' then 35000 when 'suite' then 55000 when 'famille' then 45000 else 0 end;
+  r := 'HOT-' || to_char(now(), 'YY') || '-' || lpad(nextval('hotel_resa_seq')::text, 4, '0');
+  insert into hotel_reservations(ref, type, chambre, nom, tel, email, pays, arrivee, depart, adultes, enfants, note, total)
+  values (r, t, ch, left(d->>'nom',120), left(d->>'tel',40), nullif(left(d->>'email',200),''), left(d->>'pays',60), a, dp,
+          greatest(1, least(8, coalesce((d->>'adultes')::int, 1))), greatest(0, least(8, coalesce((d->>'enfants')::int, 0))), left(d->>'note',500), (dp - a) * px);
+  return r;
+end $$;
+grant execute on function public.hotel_reserver_chambre(jsonb) to anon, authenticated;
+
+-- Réservation de table par un visiteur (capacité : 60 couverts par service)
+create or replace function public.hotel_reserver_table(d jsonb) returns text
+language plpgsql security definer set search_path = public as $$
+declare dt date := (d->>'date')::date; n int := coalesce((d->>'couverts')::int, 0); r text;
+begin
+  if coalesce(trim(d->>'nom'),'') = '' or coalesce(trim(d->>'tel'),'') = '' then raise exception 'Nom et téléphone sont obligatoires'; end if;
+  if dt is null or dt < current_date or n < 1 or n > 40 or d->>'service' not in ('Petit-déjeuner','Déjeuner','Dîner') then raise exception 'Réservation invalide'; end if;
+  if coalesce((select sum(couverts) from hotel_resa_tables where date = dt and service = d->>'service' and statut <> 'annulée'), 0) + n > 60 then raise exception 'complet'; end if;
+  r := 'TAB-' || to_char(now(), 'YY') || '-' || lpad(nextval('hotel_table_seq')::text, 4, '0');
+  insert into hotel_resa_tables(ref, date, heure, service, couverts, nom, tel, note)
+  values (r, dt, left(d->>'heure',5), d->>'service', n, left(d->>'nom',120), left(d->>'tel',40), left(d->>'note',300));
+  return r;
+end $$;
+grant execute on function public.hotel_reserver_table(jsonb) to anon, authenticated;
+
+alter publication supabase_realtime add table public.hotel_reservations, public.hotel_resa_tables;
+
+-- Données de démarrage : chambres, carte du restaurant et équipe de démonstration
+insert into public.hotel_chambres(num, type, etage, statut)
+select * from (values ('101','standard',1,'propre'),('102','standard',1,'propre'),('103','standard',1,'propre'),('104','standard',1,'propre'),('105','standard',1,'a-nettoyer'),('106','standard',1,'propre'),('107','standard',1,'propre'),('108','standard',1,'propre'),
+  ('201','confort',2,'propre'),('202','confort',2,'propre'),('203','confort',2,'propre'),('204','confort',2,'maintenance'),('205','suite',2,'propre'),('206','suite',2,'propre'),('301','famille',3,'propre'),('302','famille',3,'propre')) v(num,type,etage,statut)
+where not exists (select 1 from public.hotel_chambres);
+insert into public.hotel_menu(cat, nom, "desc", prix)
+select * from (values
+ ('Petit-déjeuner','Petit-déjeuner continental','Pain, beurre, confiture, fruits de saison, jus frais, café ou thé',4500),
+ ('Petit-déjeuner','Petit-déjeuner gabonais','Beignets, bouillie de maïs, œuf au plat, café ou thé',3500),
+ ('Petit-déjeuner','Omelette & pain','Omelette de deux œufs au choix, pain frais, boisson chaude',2500),
+ ('Entrées','Salade de crudités','Tomates, concombre, carottes, vinaigrette du chef',3000),
+ ('Entrées','Salade d''avocat et crevettes','Avocat, crevettes roses, citron vert',5000),
+ ('Entrées','Soupe de poisson','Bouillon parfumé, poisson frais, piment doux',3500),
+ ('Entrées','Beignets de plantain','Plantain mûr frit, sauce pimentée',2500),
+ ('Plats gabonais','Poulet nyembwe','Poulet mijoté à la sauce de noix de palme, riz ou manioc',7500),
+ ('Plats gabonais','Sauce graine & riz','Sauce de noix de palme, viande ou poisson fumé',6500),
+ ('Plats gabonais','Maboké de capitaine','Poisson cuit en feuilles de bananier, accompagné de bâton de manioc',9000),
+ ('Plats gabonais','Feuilles de manioc','Feuilles pilées, poisson fumé, riz blanc',6000),
+ ('Grillades & poissons','Poisson braisé','Poisson du jour grillé, bananes plantain, sauce tomate pimentée',8000),
+ ('Grillades & poissons','Brochettes de poulet','Brochettes marinées, frites ou plantain',6000),
+ ('Grillades & poissons','Soya (brochettes de bœuf)','Bœuf épicé grillé, oignons, piment',5000),
+ ('Grillades & poissons','Steak frites','Bœuf grillé, frites maison, sauce poivre',8500),
+ ('Grillades & poissons','Crevettes sautées à l''ail','Crevettes, ail, persil, riz parfumé',10000),
+ ('Desserts','Salade de fruits tropicaux','Ananas, papaye, banane, mangue selon la saison',3000),
+ ('Desserts','Beignets sucrés','Beignets chauds saupoudrés de sucre',2000),
+ ('Desserts','Gâteau du chef','Pâtisserie du jour préparée par les étudiants',3500),
+ ('Desserts','Glace artisanale (2 boules)','Parfums du jour',2500),
+ ('Boissons','Eau minérale','50 cl',1000),
+ ('Boissons','Jus d''ananas ou de gingembre frais','Pressé le jour même',2000),
+ ('Boissons','Bissap','Infusion froide d''hibiscus',2000),
+ ('Boissons','Sodas','Au choix, 33 cl',1500),
+ ('Boissons','Café ou thé','Chaud',1500),
+ ('Boissons','Bière locale','33 cl',2500)) v(cat, nom, d, prix)
+where not exists (select 1 from public.hotel_menu);
+insert into public.hotel_equipe(nom, poste, jours, debut, fin, promo)
+select * from (values
+ ('Aurore Nzamba','Réception',array[1,2,3,4,5],'07:00','15:00','Licence 1 · Hôtellerie'),
+ ('Fabrice Engone','Réception',array[1,2,3,4,5],'15:00','22:00','Licence 1 · Hôtellerie'),
+ ('Grâce Mba','Gouvernante · étages',array[1,2,3,4,5,6],'08:00','14:00','Licence 1 · Hôtellerie'),
+ ('Yannick Ntoutoume','Salle · service',array[2,3,4,5,6],'11:30','15:30','Licence 1 · Restauration'),
+ ('Prisca Moussavou','Salle · service',array[2,3,4,5,6],'18:30','22:30','Licence 1 · Restauration'),
+ ('Cédric Obiang','Cuisine',array[1,2,3,4,5],'09:00','15:00','Licence 1 · Restauration'),
+ ('Merveille Ondo','Cuisine · pâtisserie',array[1,2,3,4,5],'14:00','21:00','Licence 1 · Restauration'),
+ ('Loïc Mabika','Accueil · conciergerie',array[1,3,5,6],'08:00','16:00','Licence 1 · Tourisme')) v(nom, poste, jours, debut, fin, promo)
+where not exists (select 1 from public.hotel_equipe);

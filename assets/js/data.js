@@ -137,3 +137,42 @@ const AGENDA = [
   {d:"24 sept. → 2 oct. 2026", t:"Recrutement du personnel (CNOU)", s:"Dépôt des dossiers sur place, de 7 h 30 à 15 h 30", done:true},
   {d:"Rentrée 2026-2027", t:"Début des cours par filière", s:"Dates communiquées par la scolarité et publiées dans l'Espace numérique", done:false},
 ];
+
+/* Hôtel-restaurant d'application (École supérieure du Tourisme).
+   ⚠ Types de chambres, tarifs, carte et horaires = PROPOSITION DE DÉMONSTRATION, à valider avec l'École du Tourisme. */
+const HOTEL = {
+  nom: "Hôtel-restaurant d'application",
+  types: {
+    standard: {nom:"Chambre Standard", prix:25000, cap:2, surface:"18 m²", lit:"1 lit double ou 2 lits simples", ic:"bed",
+      desc:"Une chambre simple et lumineuse, idéale pour un séjour d'affaires ou une escale sur le campus.",
+      eq:["Climatisation","Wi-Fi","Télévision","Salle d'eau privée","Bureau de travail"]},
+    confort: {nom:"Chambre Confort", prix:35000, cap:2, surface:"24 m²", lit:"1 grand lit", ic:"bed",
+      desc:"Plus d'espace et un coin salon pour travailler ou se détendre après les cours et les séminaires.",
+      eq:["Climatisation","Wi-Fi","Télévision écran plat","Salle de bain avec douche","Coin salon","Mini-réfrigérateur"]},
+    suite: {nom:"Suite Junior", prix:55000, cap:3, surface:"36 m²", lit:"1 grand lit + canapé-lit", ic:"award",
+      desc:"Notre chambre la plus spacieuse, pensée pour les invités de l'université et les délégations.",
+      eq:["Climatisation","Wi-Fi","Salon séparé","Salle de bain avec baignoire","Mini-bar","Petit-déjeuner inclus"]},
+    famille: {nom:"Chambre Familiale", prix:45000, cap:4, surface:"32 m²", lit:"1 lit double + 2 lits simples", ic:"users",
+      desc:"Deux espaces de couchage pour voyager en famille ou entre collègues, en toute tranquillité.",
+      eq:["Climatisation","Wi-Fi","Télévision","Salle de bain avec douche","Espace de rangement","Lits d'enfant sur demande"]},
+  },
+  services: [
+    {ic:"wa", t:"Wi-Fi gratuit", d:"Connexion dans les chambres, la réception et le restaurant."},
+    {ic:"clock", t:"Réception", d:"Accueil, informations et conciergerie tenus par les étudiants en hôtellerie, sous la direction de leurs encadreurs."},
+    {ic:"book", t:"Salle de séminaire", d:"Salle équipée pour réunions, ateliers et formations (sur réservation)."},
+    {ic:"cap", t:"Au cœur du campus", d:"À quelques pas de l'amphithéâtre, de la bibliothèque et des bâtiments pédagogiques."},
+    {ic:"shield", t:"Séjour sécurisé", d:"Campus clôturé et surveillé, parking à proximité."},
+    {ic:"globe", t:"Accueil de délégations", d:"Tarifs de groupe pour les invités de l'université et les rencontres régionales."},
+  ],
+  resto: {
+    couverts: 60,
+    services: {
+      "Petit-déjeuner": {h:["07:00","07:30","08:00","08:30","09:00","09:30"], l:"7 h – 10 h"},
+      "Déjeuner": {h:["12:00","12:30","13:00","13:30","14:00"], l:"12 h – 15 h"},
+      "Dîner": {h:["19:00","19:30","20:00","20:30","21:00"], l:"19 h – 22 h"},
+    },
+  },
+  menuCats: ["Petit-déjeuner","Entrées","Plats gabonais","Grillades & poissons","Desserts","Boissons"],
+  statutsResa: ["en attente","confirmée","arrivé","parti","annulée"],
+  pays: ["Gabon","Cameroun","Congo","RD Congo","Guinée équatoriale","Tchad","Centrafrique","Sénégal","Côte d'Ivoire","France","Autre"],
+};

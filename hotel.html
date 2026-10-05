@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#0f2a5e">
+<title>Hôtel-restaurant d'application – UIBCON · Université internationale Brice Clotaire Oligui Nguema</title>
+<meta name="description" content="Réservez une chambre ou une table à l'hôtel-restaurant d'application du campus du Cap Estérias, tenu par les étudiants de l'École supérieure du Tourisme.">
+<link rel="icon" href="assets/img/logo-uibcon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="hotel">
+<div id="site-header"></div>
+
+<header class="page-hero">
+  <img class="bg" src="assets/img/campus-vue-haute.jpg" alt="" style="object-position:center 40%">
+  <div class="wrap">
+    <p class="crumbs"><a href="index.html">Accueil</a> / Hôtel-restaurant</p>
+    <h1>Hôtel-restaurant d'application</h1>
+    <p>Séjournez et dînez sur le campus du Cap Estérias : un établissement tenu par les étudiants de l'École supérieure du Tourisme, sous la direction de leurs encadreurs.</p>
+    <div class="cta" style="margin-top:1.4rem;display:flex;gap:.7rem;flex-wrap:wrap"><a class="btn btn-orange" href="#reserver">Réserver une chambre</a><a class="btn btn-ghost" href="#restaurant">Réserver une table</a></div>
+  </div>
+</header>
+
+<div class="demo-note"><div class="wrap">Version de démonstration : les types de chambres, tarifs, carte et horaires sont des propositions à valider avec l'École supérieure du Tourisme. Aucun paiement n'est demandé en ligne.</div></div>
+
+<section class="bg-white">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow rv">Un hôtel qui forme</span>
+      <h2 class="rv d1" style="font-size:clamp(1.8rem,3.4vw,2.6rem);color:var(--navy);margin:.6rem 0 1rem">Un lieu de vie, et une salle de classe grandeur nature</h2>
+      <p class="lead-p rv d2">L'hôtel-restaurant d'application fait partie du campus de l'UIBCON. Les étudiants en hôtellerie, restauration et tourisme y pratiquent leur futur métier — réception, étages, salle, cuisine, conciergerie — en conditions réelles.</p>
+      <ul class="checks rv d2">
+        <li>Réception, service en salle et cuisine assurés par les étudiants, encadrés par des professionnels</li>
+        <li>Les recettes contribuent à la vie de l'école et à la formation pratique</li>
+        <li>Ouvert au public, aux invités de l'université et aux délégations</li>
+      </ul>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.4rem" class="rv d3"><a class="btn btn-navy" href="formations.html?n=est">L'École du Tourisme</a><a class="btn btn-line" href="espace.html?role=admin&demo=1&next=gestion-hotel.html">Voir la gestion (démo)</a></div>
+    </div>
+    <div class="agenda-card rv">
+      <h3>Pratique & horaires</h3>
+      <ul class="hinfo">
+        <li><b>Réception</b><span>7 h – 22 h, tous les jours (proposition)</span></li>
+        <li><b>Petit-déjeuner</b><span>7 h – 10 h</span></li>
+        <li><b>Déjeuner</b><span>12 h – 15 h</span></li>
+        <li><b>Dîner</b><span>19 h – 22 h</span></li>
+        <li><b>Arrivée / départ</b><span>à partir de 14 h / avant 11 h</span></li>
+        <li><b>Adresse</b><span>Campus du Cap Estérias, commune d'Akanda</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="chambres">
+  <div class="wrap">
+    <div class="center"><div class="sec-head"><span class="eyebrow">Hébergement</span><h2>Nos chambres</h2><p>Quatre types de chambres, toutes climatisées avec Wi-Fi. Tarifs indicatifs par nuit.</p></div></div>
+    <div class="rooms" id="h-rooms"></div>
+  </div>
+</section>
+
+<section class="bg-white">
+  <div class="wrap">
+    <div class="center"><div class="sec-head"><span class="eyebrow">Services</span><h2>Tout pour un séjour réussi</h2></div></div>
+    <div class="cards" id="h-services"></div>
+  </div>
+</section>
+
+<section id="reserver">
+  <div class="wrap split" style="align-items:start">
+    <div>
+      <span class="eyebrow rv">Réservation en ligne</span>
+      <h2 class="rv d1" style="font-size:clamp(1.8rem,3.4vw,2.6rem);color:var(--navy);margin:.6rem 0 1rem">Réservez votre chambre</h2>
+      <p class="lead-p rv d2">Choisissez vos dates et votre type de chambre : la disponibilité et le tarif s'affichent immédiatement. La réception confirme ensuite votre demande par téléphone.</p>
+      <ul class="checks rv d2"><li>Disponibilité vérifiée en direct</li><li>Pas de paiement en ligne</li><li>Numéro de réservation immédiat</li></ul>
+      <img class="rv" src="assets/img/campus-aerien.jpg" alt="Le campus du Cap Estérias" style="border-radius:22px;margin-top:1.6rem;box-shadow:var(--shadow);width:100%" loading="lazy">
+    </div>
+    <form class="panel form rv" id="resa-form">
+      <h3 style="color:var(--navy)">Ma demande de séjour</h3>
+      <div class="row"><div class="field"><label for="r-arr">Arrivée *</label><input id="r-arr" name="arrivee" type="date" required></div><div class="field"><label for="r-dep">Départ *</label><input id="r-dep" name="depart" type="date" required></div></div>
+      <div class="field"><label for="r-type">Chambre *</label><select id="r-type" name="type" required></select></div>
+      <div class="row"><div class="field"><label for="r-ad">Adultes</label><input id="r-ad" name="adultes" type="number" min="1" max="6" value="1"></div><div class="field"><label for="r-en">Enfants</label><input id="r-en" name="enfants" type="number" min="0" max="6" value="0"></div></div>
+      <div id="resa-info" class="resa-info"></div>
+      <div class="row"><div class="field"><label for="r-nom">Nom complet *</label><input id="r-nom" name="nom" required autocomplete="name"></div><div class="field"><label for="r-tel">Téléphone *</label><input id="r-tel" name="tel" type="tel" required autocomplete="tel"></div></div>
+      <div class="row"><div class="field"><label for="r-mail">E-mail</label><input id="r-mail" name="email" type="email" autocomplete="email"></div><div class="field"><label for="r-pays">Pays</label><select id="r-pays" name="pays"></select></div></div>
+      <div class="field"><label for="r-note">Demande particulière</label><textarea id="r-note" name="note" style="min-height:70px" placeholder="Arrivée tardive, lit d'enfant, séminaire…"></textarea></div>
+      <button class="btn btn-orange" type="submit">Envoyer ma demande</button>
+    </form>
+  </div>
+</section>
+
+<section id="restaurant" class="bg-white">
+  <div class="wrap">
+    <div class="center"><div class="sec-head"><span class="eyebrow">Restaurant d'application</span><h2>La carte des étudiants</h2><p>Cuisine gabonaise et classiques internationaux, préparés et servis par les étudiants en restauration. Prix indicatifs.</p></div></div>
+    <div class="tabs" id="h-menu-tabs" style="justify-content:center"></div>
+    <div class="menu-grid" id="h-menu"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split" style="align-items:start">
+    <div>
+      <span class="eyebrow rv">Réserver une table</span>
+      <h2 class="rv d1" style="font-size:clamp(1.8rem,3.4vw,2.6rem);color:var(--navy);margin:.6rem 0 1rem">Un déjeuner, un dîner, une réception ?</h2>
+      <p class="lead-p rv d2">Réservez une table pour le petit-déjeuner, le déjeuner ou le dîner. Pour un groupe de plus de 40 personnes ou un événement (mariage, séminaire, remise de diplômes), écrivez-nous depuis la page Contact.</p>
+      <ul class="checks rv d2"><li>Service du petit-déjeuner, du déjeuner et du dîner</li><li>Menus de groupe sur demande</li><li>Salle de séminaire disponible</li></ul>
+      <a class="btn btn-line rv d3" href="contact.html">Demande de groupe ou d'événement</a>
+    </div>
+    <form class="panel form rv" id="table-form">
+      <h3 style="color:var(--navy)">Ma réservation de table</h3>
+      <div class="row"><div class="field"><label for="t-date">Date *</label><input id="t-date" name="date" type="date" required></div><div class="field"><label for="t-svc">Service *</label><select id="t-svc" name="service"></select></div></div>
+      <div class="row"><div class="field"><label for="t-h">Heure *</label><select id="t-h" name="heure"></select></div><div class="field"><label for="t-c">Couverts *</label><input id="t-c" name="couverts" type="number" min="1" max="40" value="2" required></div></div>
+      <div class="row"><div class="field"><label for="t-nom">Nom *</label><input id="t-nom" name="nom" required autocomplete="name"></div><div class="field"><label for="t-tel">Téléphone *</label><input id="t-tel" name="tel" type="tel" required autocomplete="tel"></div></div>
+      <div class="field"><label for="t-note">Remarque</label><textarea id="t-note" name="note" style="min-height:60px" placeholder="Anniversaire, régime alimentaire…"></textarea></div>
+      <button class="btn btn-orange" type="submit">Réserver la table</button>
+    </form>
+  </div>
+</section>
+
+<section class="bg-white" style="padding-top:3rem">
+  <div class="wrap" style="max-width:860px">
+    <div class="center"><div class="sec-head"><span class="eyebrow">FAQ</span><h2>Questions fréquentes</h2></div></div>
+    <div class="faq">
+      <details><summary>Dois-je payer en ligne ?</summary><p>Non. La réservation en ligne est une demande : la réception vous rappelle pour confirmer et vous indique les modalités de paiement sur place.</p></details>
+      <details><summary>L'hôtel est-il réservé aux étudiants ?</summary><p>Non, il est ouvert à tous : familles, voyageurs, invités de l'université, entreprises et délégations. Les étudiants de l'École du Tourisme y font leur pratique professionnelle.</p></details>
+      <details><summary>Peut-on organiser un séminaire ou une cérémonie ?</summary><p>Oui, une salle de séminaire est prévue. Faites votre demande depuis la page Contact en précisant la date et le nombre de participants.</p></details>
+      <details><summary>Les tarifs affichés sont-ils définitifs ?</summary><p>Non : ce sont des tarifs de démonstration. Les tarifs officiels seront fixés par l'École supérieure du Tourisme et l'université.</p></details>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/hotel.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

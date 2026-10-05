@@ -40,7 +40,7 @@ const P = (() => {
     const sb = document.getElementById("sb");
     const draw = () => {
       sb.innerHTML = `<div class="sb-brand"><img src="assets/img/logo-uibcon.svg" alt=""><span><b>UIBCON</b><small>${sub}</small></span></div>` +
-        NAV.map(n => { const b = n.badge ? n.badge() : 0; return `<a href="#${n.id}" data-v="${n.id}" class="${n.id === cur ? "on" : ""}">${ICONS[n.ic]}${n.l}${b ? `<span class="pill">${b}</span>` : ""}</a>`; }).join("") +
+        NAV.map(n => { const b = n.badge ? n.badge() : 0; return `<a href="${n.href || "#" + n.id}" data-v="${n.id}" class="${n.id === cur ? "on" : ""}">${ICONS[n.ic]}${n.l}${b ? `<span class="pill">${b}</span>` : ""}</a>`; }).join("") +
         `<div class="sb-foot"><a href="index.html">${ICONS.home}Retour au site</a><button class="lnk" id="logout">${ICONS.out}Déconnexion</button></div>`;
       document.getElementById("logout").onclick = async () => { await Store.logout(); location.href = "espace.html?role=" + me.role; };
     };
@@ -226,6 +226,7 @@ const P = (() => {
       {id:"programme", l:"Classes & matières", ic:"book", s:"Organisation pédagogique : classes, matières, coefficients et enseignants"},
       {id:"contacts", l:"Messages du site", ic:"mail", s:"Formulaire de contact", badge:() => db().contacts.length});
     nav.splice(admin ? 5 : 2, 0, {id:"planning", l:admin ? "Planning" : "Mon planning", ic:"cal", s:admin ? "Emploi du temps des classes, examens, réunions et événements" : "Vos cours de la semaine, examens et événements de vos classes"});
+    if (admin) nav.push({id:"hotel", l:"Hôtel-restaurant", ic:"bed", s:"Gestion de l'hôtel-restaurant d'application", href:"gestion-hotel.html"});
     nav.push({id:"compte", l:"Mon compte", ic:"lock", s:"Profil et mot de passe"});
 
     const views = {
@@ -345,7 +346,7 @@ const P = (() => {
             <td><select data-c="${c.id}" class="chip ${st[c.statut]}" style="border:0;cursor:pointer">${Object.keys(st).map(s => `<option ${s === c.statut ? "selected" : ""}>${s}</option>`).join("")}</select></td><td><button class="btn btn-line btn-sm" data-v="${c.id}">Voir</button></td></tr>`).join("")}
           </tbody></table></div>` : empty("Aucune pré-inscription pour le moment.")}</div>`;
         el.querySelectorAll("select[data-c]").forEach(s => s.onchange = async () => { await act(() => Store.setStatut(s.dataset.c, s.value), "Statut mis à jour."); route(false); });
-        el.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { const c = C.find(x => x.id === b.dataset.v); modal("Dossier " + c.ref, `<p><b>${esc(c.prenom)} ${esc(c.nom)}</b> — ${esc(c.tel)} ${c.email ? "· " + esc(c.email) : ""}</p><p style="margin:.6rem 0">Formation : <b>${esc(c.formationLabel)}</b><br>Diplôme : ${esc(c.niveau)} ${esc(c.serie || "")}<br>Ville : ${esc(c.ville || "—")} · Né(e) le : ${c.naissance ? date(c.naissance) : "—"}<br>Source : ${esc(c.source || "—")}</p><div class="panel" style="box-shadow:none"><b>Motivation</b><p style="color:var(--muted);margin-top:.4rem">${esc(c.motivation || "Non renseignée.")}</p></div>
+        el.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { const c = C.find(x => x.id === b.dataset.v); modal("Dossier " + c.ref, `<p><b>${esc(c.prenom)} ${esc(c.nom)}</b> — ${esc(c.tel)} ${c.email ? "· " + esc(c.email) : ""}</p><p style="margin:.6rem 0">Formation : <b>${esc(c.formationLabel)}</b><br>Diplôme : ${esc(c.niveau)} ${esc(c.serie || "")}<br>Ville : ${esc(c.ville || "—")}${c.pays ? " (" + esc(c.pays) + ")" : ""} · Né(e) le : ${c.naissance ? date(c.naissance) : "—"}<br>Source : ${esc(c.source || "—")}</p><div class="panel" style="box-shadow:none"><b>Motivation</b><p style="color:var(--muted);margin-top:.4rem">${esc(c.motivation || "Non renseignée.")}</p></div>
       <div class="panel" style="box-shadow:none;margin-top:.8rem"><b>Pièces jointes (${(c.pieces || []).length})</b>${(c.pieces || []).length ? `<ul class="pj-list adm">${c.pieces.map((p, i) => `<li><span class="pj-ic">${p.type === "application/pdf" ? "PDF" : "IMG"}</span><span class="pj-n">${esc(p.nom)}<small>${Math.max(1, Math.round((p.taille || 0) / 1024))} Ko</small></span><button class="btn btn-line btn-sm" data-pj="${i}">Ouvrir</button></li>`).join("")}</ul>` : `<p style="color:var(--muted);margin-top:.4rem">Aucun fichier joint.</p>`}</div><div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap"><a class="btn btn-orange btn-sm" href="tel:${esc(String(c.tel).replace(/\s/g, ""))}">${ICONS.phone} Appeler</a>${c.email ? `<a class="btn btn-line btn-sm" href="mailto:${esc(c.email)}">${ICONS.mail} Écrire</a>` : ""}</div>`);
           document.querySelectorAll("#modal [data-pj]").forEach(b => b.onclick = async () => { try { const u = await Store.pieceUrl(c.pieces[+b.dataset.pj]); const a = document.createElement("a"); a.href = u; a.target = "_blank"; a.rel = "noopener"; a.click(); } catch (e) { toast("Ouverture impossible : " + e.message, "err"); } }); });
       },
@@ -543,5 +544,13 @@ const P = (() => {
     shell(nav, views, "Étudiant");
   }
 
-  return {teacher, student, redrawNav:() => {}};
+  /* Gestion de l'hôtel-restaurant : réservé à la scolarité */
+  function hotel(start) {
+    boot("enseignant", () => {
+      if (me.role !== "admin") { location.replace("enseignant.html"); return; }
+      start({shell, me, esc, kpis, act, empty, ss, rerender:() => route(false)});
+    });
+  }
+
+  return {teacher, student, hotel, redrawNav:() => {}};
 })();

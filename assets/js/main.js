@@ -27,7 +27,7 @@ function modal(title, html) {
 /* ---------- En-tête & pied de page ---------- */
 function renderChrome() {
   const page = document.body.dataset.page;
-  const links = [["index","Accueil"],["ecole","L'Université"],["formations","Formations"],["admission","Admission"],["planning","Planning"],["vie-etudiante","Campus"],["contact","Contact"],["espace","Espace numérique"]];
+  const links = [["index","Accueil"],["ecole","L'Université"],["formations","Formations"],["admission","Admission"],["planning","Planning"],["hotel","Hôtel"],["vie-etudiante","Campus"],["contact","Contact"],["espace","Espace numérique"]];
   const h = $("#site-header");
   if (h) h.outerHTML = `
   <div class="progress"></div>
@@ -54,7 +54,7 @@ function renderChrome() {
       </div>
     </div>
     <div><h4>L'université</h4><ul>
-      <li><a href="ecole.html">Présentation</a></li><li><a href="formations.html">Nos formations</a></li><li><a href="admission.html">Admission & inscription</a></li><li><a href="planning.html">Planning & agenda</a></li><li><a href="vie-etudiante.html">Campus & actualités</a></li><li><a href="contact.html">Contact</a></li>
+      <li><a href="ecole.html">Présentation</a></li><li><a href="formations.html">Nos formations</a></li><li><a href="admission.html">Admission & inscription</a></li><li><a href="planning.html">Planning & agenda</a></li><li><a href="hotel.html">Hôtel-restaurant</a></li><li><a href="vie-etudiante.html">Campus & actualités</a></li><li><a href="contact.html">Contact</a></li>
     </ul></div>
     <div><h4>Formations</h4><ul>
       <li><a href="formations.html?n=ist">Institut supérieur de Technologie</a></li><li><a href="formations.html?n=est">École supérieure du Tourisme</a></li><li><a href="formations.html?n=fse">Faculté des Sciences de l'Éducation</a></li><li><a href="admission.html#calendrier">Calendrier de rentrée</a></li>
@@ -216,6 +216,7 @@ function initAdmission() {
   const sel = $("[name=formation]", form);
   sel.innerHTML = '<option value="">— Choisir une formation —</option>' + Object.entries(NIVEAUX).map(([k, n]) => `<optgroup label="${n.full}">${FORMATIONS.filter(f => f.niv === k).map(f => `<option value="${f.id}">${f.t}</option>`).join("")}</optgroup>`).join("");
   const pre = new URLSearchParams(location.search).get("f"); if (pre) sel.value = pre;
+  const pays = $("[name=pays]", form); if (pays) pays.innerHTML = HOTEL.pays.map(p => `<option>${p}</option>`).join("");
   const PJ = {max:5, size:3 * 1024 * 1024, types:["application/pdf", "image/jpeg", "image/png"]};
   let files = [];
   const pjList = $("#pj-list"), pjIn = $("#pieces");

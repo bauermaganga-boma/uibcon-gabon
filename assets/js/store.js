@@ -326,6 +326,7 @@ const Store = (() => {
     init: () => A.init(),
     ready: () => LIVE ? ready() : Promise.resolve(),
     db: () => db,
+    client: () => sb,
     loadSample() { db = seed(); db.rangs = {}; return db; },
     current: () => me,
     user: id => db.users.find(u => u.id === id),
